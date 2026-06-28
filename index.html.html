@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyMind AI</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f13;--bg2:#17171e;--bg3:#1e1e28;--bg4:#252533;
+  --border:#2e2e3e;--border2:#3d3d52;
+  --text:#e8e8f0;--text2:#9898b0;--text3:#5a5a70;
+  --purple:#7c6af7;--purple2:#9d8ff8;--purple3:#5a4bd4;
+  --teal:#1fc8a4;--teal2:#3ddbb8;
+  --amber:#f5a623;--coral:#f06060;--green:#4caf7d;
+  --r:10px;--r2:16px;
+  --font:'Inter',system-ui,sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+a{color:var(--purple2);text-decoration:none}
+input,textarea,select{font-family:inherit;font-size:14px;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:var(--r);padding:8px 12px;outline:none;transition:.15s}
+input:focus,textarea:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(124,106,247,.15)}
+button{font-family:inherit;cursor:pointer;transition:.15s}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* Layout */
+#app{display:flex;flex-direction:column;min-height:100vh}
+.nav{display:flex;align-items:center;gap:12px;padding:14px 24px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.nav-logo{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:700;letter-spacing:-.3px}
+.nav-logo .dot{width:8px;height:8px;border-radius:50%;background:var(--purple);box-shadow:0 0 12px var(--purple)}
+.nav-spacer{flex:1}
+.nav-badge{font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(124,106,247,.15);color:var(--purple2);border:1px solid rgba(124,106,247,.3)}
+.nav-btn{padding:7px 14px;border-radius:var(--r);border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:13px}
+.nav-btn:hover{background:var(--bg3);color:var(--text)}
+.nav-btn.primary{background:var(--purple);border-color:var(--purple);color:#fff}
+.nav-btn.primary:hover{background:var(--purple3)}
+
+/* Upload screen */
+#upload-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:32px}
+.upload-hero{text-align:center;max-width:560px}
+.upload-hero h1{font-size:clamp(28px,5vw,48px);font-weight:800;letter-spacing:-.5px;line-height:1.15;background:linear-gradient(135deg,#fff 0%,var(--purple2) 60%,var(--teal) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px}
+.upload-hero p{font-size:16px;color:var(--text2);line-height:1.6}
+.upload-zone{width:100%;max-width:520px;border:2px dashed var(--border2);border-radius:var(--r2);padding:48px 32px;text-align:center;cursor:pointer;transition:.2s;background:var(--bg2);position:relative}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--purple);background:rgba(124,106,247,.05)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:48px;margin-bottom:16px;display:block}
+.upload-zone h3{font-size:16px;font-weight:600;margin-bottom:6px}
+.upload-zone p{font-size:13px;color:var(--text2)}
+.upload-features{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:560px}
+.feat-chip{display:flex;align-items:center;gap:6px;padding:6px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text2)}
+.feat-chip span{font-size:14px}
+
+/* Processing screen */
+#proc-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:24px}
+.proc-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:40px;max-width:440px;width:100%;text-align:center}
+.proc-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.proc-sub{font-size:14px;color:var(--text2);margin-bottom:28px}
+.proc-spinner{width:56px;height:56px;border:3px solid var(--border2);border-top-color:var(--purple);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 24px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.proc-steps{text-align:left;display:flex;flex-direction:column;gap:8px}
+.proc-step{display:flex;align-items:center;gap:10px;font-size:13px;padding:8px 12px;border-radius:8px;transition:.3s}
+.proc-step.done{color:var(--teal)}
+.proc-step.active{color:var(--text);background:rgba(124,106,247,.08)}
+.proc-step.wait{color:var(--text3)}
+.proc-step-icon{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+.proc-step.done .proc-step-icon{background:var(--teal);color:#000}
+.proc-step.active .proc-step-icon{background:var(--purple);animation:pulse 1.2s ease-in-out infinite}
+.proc-step.wait .proc-step-icon{background:var(--border2)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.proc-bar-wrap{width:100%;height:4px;background:var(--border);border-radius:2px;margin-top:20px;overflow:hidden}
+.proc-bar{height:100%;background:linear-gradient(90deg,var(--purple),var(--teal));border-radius:2px;transition:width .4s}
+
+/* Main dashboard */
+#dash{flex:1;display:flex;overflow:hidden;height:calc(100vh - 53px)}
+.sidebar{width:220px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:16px 0}
+.sidebar-section{padding:0 12px;margin-bottom:20px}
+.sidebar-label{font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);padding:0 8px;margin-bottom:6px}
+.sidebar-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;font-size:13px;color:var(--text2);cursor:pointer;transition:.15s;border:none;background:none;width:100%;text-align:left}
+.sidebar-item:hover{background:var(--bg3);color:var(--text)}
+.sidebar-item.active{background:rgba(124,106,247,.15);color:var(--purple2)}
+.sidebar-item .icon{font-size:16px;width:18px;text-align:center}
+.sidebar-item .badge{margin-left:auto;font-size:10px;padding:2px 6px;border-radius:10px;background:var(--purple);color:#fff}
+.doc-info{padding:12px;margin:0 12px 16px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border)}
+.doc-name{font-size:12px;font-weight:600;margin-bottom:4px;word-break:break-all}
+.doc-meta{font-size:11px;color:var(--text3)}
+.main-content{flex:1;overflow-y:auto;padding:28px}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* Overview */
+.overview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.stat-card .label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.stat-card .value{font-size:22px;font-weight:700}
+.stat-card .value.purple{color:var(--purple2)}
+.stat-card .value.teal{color:var(--teal)}
+.stat-card .value.amber{color:var(--amber)}
+.stat-card .value.green{color:var(--green)}
+.content-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:20px;margin-bottom:16px}
+.content-card h3{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.content-card h3 .icon{font-size:18px}
+.section-title{font-size:22px;font-weight:700;margin-bottom:6px}
+.section-sub{font-size:14px;color:var(--text2);margin-bottom:24px}
+
+/* Notes */
+.notes-content{font-size:14px;line-height:1.8;color:var(--text)}
+.notes-content h2{font-size:17px;font-weight:700;margin:20px 0 10px;color:var(--purple2)}
+.notes-content h3{font-size:15px;font-weight:600;margin:14px 0 8px;color:var(--teal2)}
+.notes-content p{margin-bottom:10px}
+.notes-content ul{padding-left:20px;margin-bottom:10px}
+.notes-content ul li{margin-bottom:4px}
+.notes-content strong{color:var(--text)}
+.notes-toolbar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.tool-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:13px;border:1px solid var(--border2);background:transparent;color:var(--text2)}
+.tool-btn:hover{background:var(--bg3);color:var(--text)}
+.tool-btn.active{background:rgba(124,106,247,.15);border-color:var(--purple);color:var(--purple2)}
+
+/* Flashcards */
+.fc-wrap{display:flex;flex-direction:column;align-items:center;gap:20px}
+.fc-progress{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text2);align-self:flex-start}
+.fc-counter{font-size:24px;font-weight:700;color:var(--text);min-width:60px}
+.fc-card-wrap{width:100%;max-width:560px;perspective:1000px}
+.fc-card{width:100%;min-height:260px;position:relative;transform-style:preserve-3d;transition:transform .5s;cursor:pointer}
+.fc-card.flipped{transform:rotateY(180deg)}
+.fc-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:var(--r2);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center;min-height:260px}
+.fc-front{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--border2)}
+.fc-back{background:linear-gradient(135deg,rgba(124,106,247,.1),rgba(29,198,164,.07));border:1px solid rgba(124,106,247,.3);transform:rotateY(180deg)}
+.fc-label{font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+.fc-text{font-size:18px;font-weight:600;line-height:1.5}
+.fc-hint{font-size:12px;color:var(--text3);margin-top:12px}
+.fc-controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.fc-btn{padding:8px 18px;border-radius:8px;font-size:13px;font-weight:500;border:1px solid var(--border2);background:transparent;color:var(--text2)}
+.fc-btn:hover{background:var(--bg3);color:var(--text)}
+.fc-btn.known{border-color:var(--green);color:var(--green)}
+.fc-btn.known:hover{background:rgba(76,175,125,.1)}
+.fc-btn.hard{border-color:var(--coral);color:var(--coral)}
+.fc-btn.hard:hover{background:rgba(240,96,96,.1)}
+.fc-btn.primary{background:var(--purple);border-color:var(--purple);color:#fff}
+.fc-btn.primary:hover{background:var(--purple3)}
+.fc-stats-row{display:flex;gap:20px;font-size:13px}
+.fc-stat{text-align:center}
+.fc-stat .val{font-size:18px;font-weight:700}
+.fc-stat.k .val{color:var(--green)}
+.fc-stat.h .val{color:var(--coral)}
+
+/* Quiz */
+.quiz-header{display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.quiz-progress{flex:1;min-width:120px}
+.quiz-bar-bg{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.quiz-bar-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--teal));border-radius:3px;transition:width .3s}
+.quiz-q{font-size:16px;font-weight:600;line-height:1.5;margin-bottom:20px}
+.quiz-options{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.quiz-opt{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-radius:var(--r);border:1px solid var(--border2);cursor:pointer;transition:.15s;background:transparent;text-align:left;font-size:14px;color:var(--text)}
+.quiz-opt:hover:not(:disabled){border-color:var(--purple);background:rgba(124,106,247,.07)}
+.quiz-opt.correct{border-color:var(--green)!important;background:rgba(76,175,125,.1)!important;color:var(--green)}
+.quiz-opt.wrong{border-color:var(--coral)!important;background:rgba(240,96,96,.08)!important;color:var(--coral)}
+.quiz-opt .opt-letter{width:22px;height:22px;border-radius:50%;border:1px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;margin-top:1px}
+.quiz-feedback{padding:12px 16px;border-radius:var(--r);font-size:13px;line-height:1.5;margin-bottom:16px}
+.quiz-feedback.correct{background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.3);color:var(--green)}
+.quiz-feedback.wrong{background:rgba(240,96,96,.08);border:1px solid rgba(240,96,96,.2);color:#f09090}
+.quiz-nav{display:flex;gap:10px;flex-wrap:wrap}
+.quiz-diff{display:flex;gap:8px}
+.diff-chip{padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);transition:.15s}
+.diff-chip:hover{border-color:var(--border2);color:var(--text)}
+.diff-chip.active-easy{background:rgba(76,175,125,.15);border-color:var(--green);color:var(--green)}
+.diff-chip.active-medium{background:rgba(245,166,35,.1);border-color:var(--amber);color:var(--amber)}
+.diff-chip.active-hard{background:rgba(240,96,96,.1);border-color:var(--coral);color:var(--coral)}
+.quiz-score{text-align:center;padding:32px}
+.quiz-score .big{font-size:64px;font-weight:800;background:linear-gradient(135deg,var(--purple2),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.quiz-score .label{font-size:16px;color:var(--text2);margin-bottom:24px}
+.score-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:320px;margin:0 auto 24px}
+
+/* Tutor */
+.tutor-msgs{display:flex;flex-direction:column;gap:14px;margin-bottom:20px;max-height:400px;overflow-y:auto;padding-right:4px}
+.msg{max-width:88%;font-size:14px;line-height:1.6;padding:12px 16px;border-radius:12px}
+.msg.user{align-self:flex-end;background:rgba(124,106,247,.2);border:1px solid rgba(124,106,247,.3);border-radius:12px 12px 2px 12px}
+.msg.ai{align-self:flex-start;background:var(--bg2);border:1px solid var(--border);border-radius:2px 12px 12px 12px}
+.msg.ai.loading{color:var(--text2)}
+.tutor-input-row{display:flex;gap:10px}
+.tutor-input{flex:1;resize:none;height:44px;padding:10px 14px;line-height:1.4}
+.tutor-send{padding:0 18px;border-radius:var(--r);background:var(--purple);border:none;color:#fff;font-size:14px;font-weight:500}
+.tutor-send:hover{background:var(--purple3)}
+.mode-chips{display:flex;gap:8px;margin-bottom:16px}
+.mode-chip{padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);transition:.15s}
+.mode-chip.active{background:rgba(124,106,247,.15);border-color:var(--purple);color:var(--purple2)}
+.tutor-suggestions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.sug-btn{padding:6px 12px;border-radius:20px;font-size:12px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;transition:.15s;text-align:left}
+.sug-btn:hover{border-color:var(--border2);color:var(--text);background:var(--bg3)}
+
+/* Revision */
+.rev-plan-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.rev-tab{padding:7px 16px;border-radius:20px;font-size:13px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;transition:.15s}
+.rev-tab.active{background:var(--purple);border-color:var(--purple);color:#fff}
+.rev-day{margin-bottom:16px}
+.rev-day-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.rev-day-num{width:32px;height:32px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.rev-day-title{font-size:14px;font-weight:600}
+.rev-tasks{display:flex;flex-direction:column;gap:8px}
+.rev-task{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);font-size:13px}
+.rev-task-check{width:18px;height:18px;border-radius:4px;border:1px solid var(--border2);flex-shrink:0;margin-top:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
+.rev-task-check.done{background:var(--teal);border-color:var(--teal);color:#000}
+.rev-task-body{flex:1}
+.rev-task-title{font-weight:500;margin-bottom:2px}
+.rev-task-meta{font-size:12px;color:var(--text3)}
+.priority-high{color:var(--coral)}
+.priority-med{color:var(--amber)}
+.priority-low{color:var(--green)}
+
+/* Progress */
+.prog-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px}
+.prog-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:20px}
+.prog-card .icon{font-size:28px;margin-bottom:10px}
+.prog-card .val{font-size:28px;font-weight:800;margin-bottom:2px}
+.prog-card .lbl{font-size:12px;color:var(--text3)}
+.streak-fire{color:var(--amber)}
+.simple-chart{display:flex;align-items:flex-end;gap:4px;height:80px;margin-top:12px}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar{width:100%;background:var(--purple);border-radius:4px 4px 0 0;min-height:4px;transition:.3s;opacity:.7}
+.bar:hover{opacity:1}
+.bar-lbl{font-size:9px;color:var(--text3)}
+
+/* AI spinner */
+.ai-dot{display:inline-block;animation:blink 1.2s ease-in-out infinite}
+.ai-dot:nth-child(2){animation-delay:.2s}
+.ai-dot:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+
+/* Concepts */
+.concepts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.concept-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px;transition:.2s}
+.concept-card:hover{border-color:var(--border2);transform:translateY(-2px)}
+.concept-name{font-size:14px;font-weight:700;margin-bottom:6px;color:var(--purple2)}
+.concept-def{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px}
+.concept-example{font-size:12px;color:var(--text3);padding:8px;background:var(--bg3);border-radius:6px;border-left:2px solid var(--purple3)}
+
+/* General utils */
+.flex{display:flex}.items-center{align-items:center}.gap-2{gap:8px}.gap-3{gap:12px}
+.mb-2{margin-bottom:8px}.mb-4{margin-bottom:16px}.mt-2{margin-top:8px}
+.text-sm{font-size:13px}.text-xs{font-size:11px}.text-muted{color:var(--text2)}
+.font-bold{font-weight:700}.font-semibold{font-weight:600}
+.hidden{display:none}
+.pill{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500}
+.pill-purple{background:rgba(124,106,247,.15);color:var(--purple2)}
+.pill-teal{background:rgba(29,198,164,.15);color:var(--teal2)}
+.pill-amber{background:rgba(245,166,35,.12);color:var(--amber)}
+.pill-coral{background:rgba(240,96,96,.12);color:var(--coral)}
+.divider{height:1px;background:var(--border);margin:16px 0}
+.action-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center}
+.search-input{flex:1;min-width:140px;max-width:280px}
+@media(max-width:640px){
+  .sidebar{display:none}
+  .nav-badge{display:none}
+  .main-content{padding:16px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">
+    <div class="dot"></div>
+    StudyMind AI
+  </div>
+  <span class="nav-badge">Beta</span>
+  <div class="nav-spacer"></div>
+  <span id="nav-doc-name" class="text-sm text-muted hidden"></span>
+  <button class="nav-btn" id="btn-new-doc" onclick="goUpload()" style="display:none">+ New document</button>
+  <button class="nav-btn primary" onclick="goUpload()">Upload PDF</button>
+</nav>
+
+<!-- UPLOAD -->
+<div id="upload-screen">
+  <div class="upload-hero">
+    <h1>Turn any PDF into a complete study toolkit</h1>
+    <p>Upload a document and get smart notes, flashcards, quizzes, a revision plan, and an AI tutor — all in seconds.</p>
+  </div>
+  <div class="upload-zone" id="dropzone" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+    <input type="file" accept=".pdf,.txt" id="file-input" onchange="handleFile(event)">
+    <span class="upload-icon">📄</span>
+    <h3>Drop your PDF here</h3>
+    <p>or click to browse — PDF, TXT up to 50MB</p>
+  </div>
+  <div class="upload-features">
+    <div class="feat-chip"><span>📝</span> Smart notes</div>
+    <div class="feat-chip"><span>🃏</span> Flashcards</div>
+    <div class="feat-chip"><span>❓</span> Quiz generator</div>
+    <div class="feat-chip"><span>📅</span> Revision plan</div>
+    <div class="feat-chip"><span>🤖</span> AI tutor</div>
+    <div class="feat-chip"><span>📊</span> Progress tracking</div>
+  </div>
+  <div style="margin-top:8px">
+    <button class="nav-btn" onclick="loadDemo()">✨ Try with a sample document</button>
+  </div>
+</div>
+
+<!-- PROCESSING -->
+<div id="proc-screen" style="display:none">
+  <div class="proc-card">
+    <div class="proc-spinner"></div>
+    <div class="proc-title" id="proc-filename">Processing document…</div>
+    <div class="proc-sub" id="proc-sub">This takes a moment</div>
+    <div class="proc-steps" id="proc-steps"></div>
+    <div class="proc-bar-wrap"><div class="proc-bar" id="proc-bar" style="width:0%"></div></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dash" style="display:none">
+  <aside class="sidebar">
+    <div style="padding:12px 12px 4px">
+      <div class="doc-info">
+        <div class="doc-name" id="sb-docname"></div>
+        <div class="doc-meta" id="sb-docmeta"></div>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Study Tools</div>
+      <button class="sidebar-item active" data-tab="overview" onclick="switchTab(this,'overview')"><span class="icon">📋</span>Overview</button>
+      <button class="sidebar-item" data-tab="notes" onclick="switchTab(this,'notes')"><span class="icon">📝</span>Smart Notes</button>
+      <button class="sidebar-item" data-tab="concepts" onclick="switchTab(this,'concepts')"><span class="icon">💡</span>Key Concepts</button>
+      <button class="sidebar-item" data-tab="flashcards" onclick="switchTab(this,'flashcards')"><span class="icon">🃏</span>Flashcards <span class="badge" id="fc-count-badge">0</span></button>
+      <button class="sidebar-item" data-tab="quiz" onclick="switchTab(this,'quiz')"><span class="icon">❓</span>Quiz</button>
+      <button class="sidebar-item" data-tab="revision" onclick="switchTab(this,'revision')"><span class="icon">📅</span>Revision Plan</button>
+      <button class="sidebar-item" data-tab="tutor" onclick="switchTab(this,'tutor')"><span class="icon">🤖</span>AI Tutor</button>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Tracking</div>
+      <button class="sidebar-item" data-tab="progress" onclick="switchTab(this,'progress')"><span class="icon">📊</span>Progress</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <!-- OVERVIEW TAB -->
+    <div class="tab-panel active" id="tab-overview">
+      <div class="section-title">Document overview</div>
+      <div class="section-sub" id="overview-sub">Analyzing your document…</div>
+      <div class="overview-grid" id="overview-stats"></div>
+      <div class="content-card">
+        <h3><span class="icon">📋</span>Summary</h3>
+        <div id="overview-summary" class="text-sm" style="line-height:1.7;color:var(--text2)"></div>
+      </div>
+      <div class="content-card">
+        <h3><span class="icon">🎯</span>Learning objectives</h3>
+        <ul id="overview-objectives" style="padding-left:20px;font-size:14px;line-height:1.9;color:var(--text2)"></ul>
+      </div>
+      <div class="content-card">
+        <h3><span class="icon">🔥</span>Main topics</h3>
+        <div id="overview-topics" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
+    </div>
+
+    <!-- NOTES TAB -->
+    <div class="tab-panel" id="tab-notes">
+      <div class="section-title">Smart Notes</div>
+      <div class="section-sub">AI-generated structured notes from your document</div>
+      <div class="notes-toolbar">
+        <button class="tool-btn" onclick="copyNotes()">📋 Copy notes</button>
+        <button class="tool-btn" onclick="printNotes()">🖨️ Print</button>
+        <input type="text" class="search-input" placeholder="Search notes…" oninput="searchNotes(this.value)">
+      </div>
+      <div class="content-card">
+        <div class="notes-content" id="notes-content"></div>
+      </div>
+    </div>
+
+    <!-- CONCEPTS TAB -->
+    <div class="tab-panel" id="tab-concepts">
+      <div class="section-title">Key Concepts</div>
+      <div class="section-sub">The most important ideas from your document, explained clearly</div>
+      <div class="concepts-grid" id="concepts-grid"></div>
+    </div>
+
+    <!-- FLASHCARDS TAB -->
+    <div class="tab-panel" id="tab-flashcards">
+      <div class="section-title">Flashcards</div>
+      <div class="section-sub">Click a card to reveal the answer. Mark cards as you go.</div>
+      <div class="fc-wrap">
+        <div style="display:flex;align-items:center;gap:16px;align-self:stretch;flex-wrap:wrap">
+          <div class="fc-counter" id="fc-counter">1 / 0</div>
+          <div class="fc-stats-row">
+            <div class="fc-stat k"><div class="val" id="fc-known">0</div><div style="font-size:11px;color:var(--text3)">Known</div></div>
+            <div class="fc-stat h"><div class="val" id="fc-hard">0</div><div style="font-size:11px;color:var(--text3)">Difficult</div></div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="fc-btn" onclick="shuffleCards()">🔀 Shuffle</button>
+            <button class="fc-btn" onclick="resetCards()">↺ Reset</button>
+          </div>
+        </div>
+        <div class="fc-card-wrap">
+          <div class="fc-card" id="fc-card" onclick="flipCard()">
+            <div class="fc-face fc-front">
+              <div class="fc-label">Question</div>
+              <div class="fc-text" id="fc-front-text">Loading…</div>
+              <div class="fc-hint">Click to reveal answer</div>
+            </div>
+            <div class="fc-face fc-back">
+              <div class="fc-label">Answer</div>
+              <div class="fc-text" id="fc-back-text"></div>
+            </div>
+          </div>
+        </div>
+        <div class="fc-controls">
+          <button class="fc-btn" onclick="prevCard()">← Prev</button>
+          <button class="fc-btn known" onclick="markCard('known')">✓ Known</button>
+          <button class="fc-btn hard" onclick="markCard('hard')">✗ Difficult</button>
+          <button class="fc-btn primary" onclick="nextCard()">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUIZ TAB -->
+    <div class="tab-panel" id="tab-quiz">
+      <div class="section-title">Quiz</div>
+      <div class="section-sub" id="quiz-sub">Test your knowledge with AI-generated questions</div>
+      <div id="quiz-setup">
+        <div class="content-card">
+          <h3>Select difficulty</h3>
+          <div class="quiz-diff" style="margin-top:8px">
+            <button class="diff-chip active-easy" onclick="setDifficulty('easy',this)">Easy</button>
+            <button class="diff-chip" onclick="setDifficulty('medium',this)">Medium</button>
+            <button class="diff-chip" onclick="setDifficulty('hard',this)">Hard</button>
+          </div>
+        </div>
+        <button class="nav-btn primary" style="margin-top:8px" onclick="startQuiz()">Start quiz →</button>
+      </div>
+      <div id="quiz-play" style="display:none">
+        <div class="quiz-header">
+          <div class="text-sm text-muted" id="quiz-qnum">Question 1 of 10</div>
+          <div class="quiz-progress">
+            <div class="quiz-bar-bg"><div class="quiz-bar-fill" id="quiz-prog-bar" style="width:10%"></div></div>
+          </div>
+          <div class="pill" id="quiz-score-pill" style="background:rgba(124,106,247,.12);color:var(--purple2)">Score: 0</div>
+        </div>
+        <div class="content-card">
+          <div class="quiz-q" id="quiz-question-text"></div>
+          <div class="quiz-options" id="quiz-options"></div>
+          <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+          <div class="quiz-nav">
+            <button class="tool-btn" id="quiz-next-btn" onclick="nextQuizQ()" style="display:none">Next question →</button>
+          </div>
+        </div>
+      </div>
+      <div id="quiz-results" style="display:none">
+        <div class="quiz-score">
+          <div class="big" id="res-pct">0%</div>
+          <div class="label">Final score</div>
+          <div class="score-grid">
+            <div class="stat-card"><div class="label">Correct</div><div class="value green" id="res-correct">0</div></div>
+            <div class="stat-card"><div class="label">Wrong</div><div class="value" style="color:var(--coral)" id="res-wrong">0</div></div>
+          </div>
+          <button class="nav-btn primary" onclick="restartQuiz()">Try again</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- REVISION TAB -->
+    <div class="tab-panel" id="tab-revision">
+      <div class="section-title">Revision Plan</div>
+      <div class="section-sub">Structured study schedule based on your document</div>
+      <div class="rev-plan-tabs">
+        <button class="rev-tab active" onclick="showRevPlan(1,this)">1-Day</button>
+        <button class="rev-tab" onclick="showRevPlan(3,this)">3-Day</button>
+        <button class="rev-tab" onclick="showRevPlan(7,this)">7-Day</button>
+      </div>
+      <div id="revision-content"></div>
+    </div>
+
+    <!-- TUTOR TAB -->
+    <div class="tab-panel" id="tab-tutor">
+      <div class="section-title">AI Tutor</div>
+      <div class="section-sub">Ask anything about your document</div>
+      <div class="mode-chips">
+        <button class="mode-chip active" onclick="setTutorMode('simple',this)">🍎 Simple</button>
+        <button class="mode-chip" onclick="setTutorMode('normal',this)">📘 Normal</button>
+        <button class="mode-chip" onclick="setTutorMode('advanced',this)">🔬 Advanced</button>
+      </div>
+      <div class="tutor-suggestions" id="tutor-suggestions"></div>
+      <div class="content-card" style="padding-bottom:0">
+        <div class="tutor-msgs" id="tutor-msgs"></div>
+        <div class="divider"></div>
+        <div style="padding-bottom:16px">
+          <div class="tutor-input-row">
+            <textarea class="tutor-input" id="tutor-input" placeholder="Ask a question about your document…" onkeydown="tutorKeydown(event)"></textarea>
+            <button class="tutor-send" onclick="sendTutorMsg()">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROGRESS TAB -->
+    <div class="tab-panel" id="tab-progress">
+      <div class="section-title">Progress</div>
+      <div class="section-sub">Your study journey so far</div>
+      <div class="prog-grid" id="prog-cards"></div>
+      <div class="content-card">
+        <h3><span class="icon">📈</span>Study activity (last 7 days)</h3>
+        <div class="simple-chart" id="activity-chart"></div>
+      </div>
+      <div class="content-card">
+        <h3><span class="icon">🏆</span>Achievements</h3>
+        <div id="achievements" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:4px"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+</div><!-- #app -->
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let state = {
+  docName:'', docText:'', pageCount:0, wordCount:0,
+  notes:'', concepts:[], flashcards:[], quiz:[],
+  revPlan:{1:[],3:[],7:[]}, summary:'', objectives:[], topics:[],
+  fcIndex:0, fcFlipped:false, fcKnown:new Set(), fcHard:new Set(), fcOrder:[],
+  quizDifficulty:'easy', quizIndex:0, quizScore:0, quizAnswered:false,
+  quizActive:[], tutorMode:'simple', tutorHistory:[], tutorContext:'',
+  progress:{docs:0,flashcards:0,quizzes:0,streak:3,avgScore:0,studyTime:0},
+  revChecked:{}, revPlanDays:1
+};
+const STEPS = ['Reading PDF…','Extracting text…','Understanding content…','Generating notes…','Creating flashcards…','Generating quiz…','Preparing revision plan…','Finalizing…'];
+
+// ── Upload / Drop ──────────────────────────────────────────────────────────
+function handleDragOver(e){e.preventDefault();document.getElementById('dropzone').classList.add('drag')}
+function handleDragLeave(){document.getElementById('dropzone').classList.remove('drag')}
+function handleDrop(e){e.preventDefault();document.getElementById('dropzone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processFile(f)}
+function handleFile(e){const f=e.target.files[0];if(f)processFile(f)}
+
+function goUpload(){
+  document.getElementById('upload-screen').style.display='flex';
+  document.getElementById('proc-screen').style.display='none';
+  document.getElementById('dash').style.display='none';
+  document.getElementById('btn-new-doc').style.display='none';
+}
+
+async function processFile(file){
+  state.docName=file.name;
+  showProc(file.name);
+  let text='';
+  if(file.name.endsWith('.txt')){
+    text=await file.text();
+  } else {
+    try{text=await extractPdfText(file)}
+    catch(e){text=await file.text().catch(()=>'Unable to extract text from this file.')}
+  }
+  state.docText=text;
+  state.wordCount=text.split(/\s+/).filter(Boolean).length;
+  await runPipeline(text);
+}
+
+async function extractPdfText(file){
+  const buf=await file.arrayBuffer();
+  const pdfjsLib=window['pdfjs-dist/build/pdf'];
+  pdfjsLib.GlobalWorkerOptions.workerSrc=`https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  state.pageCount=pdf.numPages;
+  let out='';
+  for(let i=1;i<=Math.min(pdf.numPages,50);i++){
+    const pg=await pdf.getPage(i);
+    const tc=await pg.getTextContent();
+    out+=tc.items.map(x=>x.str).join(' ')+'\n';
+  }
+  return out;
+}
+
+function showProc(name){
+  document.getElementById('upload-screen').style.display='none';
+  document.getElementById('proc-screen').style.display='flex';
+  document.getElementById('dash').style.display='none';
+  document.getElementById('proc-filename').textContent=name;
+  renderProcSteps(0);
+}
+
+function renderProcSteps(active){
+  const el=document.getElementById('proc-steps');
+  el.innerHTML=STEPS.map((s,i)=>`
+    <div class="proc-step ${i<active?'done':i===active?'active':'wait'}">
+      <div class="proc-step-icon">${i<active?'✓':i===active?'…':''}</div>
+      ${s}
+    </div>`).join('');
+  document.getElementById('proc-bar').style.width=Math.round((active/STEPS.length)*100)+'%';
+}
+
+// ── Pipeline ───────────────────────────────────────────────────────────────
+async function runPipeline(text){
+  const chunk=text.slice(0,8000);
+  for(let i=0;i<STEPS.length;i++){
+    renderProcSteps(i);
+    await sleep(i===0?400:300);
+  }
+  renderProcSteps(STEPS.length);
+
+  const apiKey=getApiKey();
+  if(apiKey){
+    await runWithAPI(chunk,apiKey);
+  } else {
+    runLocal(text);
+  }
+
+  buildDashboard();
+  document.getElementById('proc-screen').style.display='none';
+  document.getElementById('dash').style.display='flex';
+  document.getElementById('btn-new-doc').style.display='block';
+  document.getElementById('nav-doc-name').textContent=state.docName;
+  document.getElementById('nav-doc-name').classList.remove('hidden');
+  state.progress.docs++;
+  saveProgress();
+}
+
+function getApiKey(){
+  return localStorage.getItem('studymind_api_key')||window.ANTHROPIC_API_KEY||null;
+}
+
+async function runWithAPI(text,key){
+  const prompt=`You are a study assistant. Analyze this document excerpt and return ONLY valid JSON (no markdown fences) with exactly these keys:
+{
+  "summary": "2-3 sentence overview",
+  "objectives": ["obj1","obj2","obj3","obj4"],
+  "topics": ["topic1","topic2","topic3","topic4","topic5"],
+  "notes": "Full HTML structured notes with <h2>, <h3>, <p>, <ul><li> tags",
+  "concepts": [
+    {"name":"Term","definition":"Short def","explanation":"1-2 sentences","example":"Real example"},
+    ... (8-12 concepts)
+  ],
+  "flashcards": [
+    {"q":"Question?","a":"Answer"},
+    ... (15-25 flashcards)
+  ],
+  "quiz": [
+    {"q":"Question?","opts":["A","B","C","D"],"correct":0,"explanation":"Why A is correct"},
+    ... (10 questions, correct is 0-based index)
+  ]
+}
+
+Document text:
+${text}`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:4000,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    const raw=data.content?.[0]?.text||'';
+    const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    applyParsed(parsed);
+  }catch(e){
+    console.warn('API call failed, using local generation',e);
+    runLocal(state.docText);
+  }
+}
+
+function applyParsed(p){
+  state.summary=p.summary||'';
+  state.objectives=p.objectives||[];
+  state.topics=p.topics||[];
+  state.notes=p.notes||'';
+  state.concepts=p.concepts||[];
+  state.flashcards=p.flashcards||[];
+  state.quiz=p.quiz||[];
+  state.revPlan=generateRevPlan(state.topics,state.objectives);
+}
+
+function runLocal(text){
+  const words=text.split(/\s+/).filter(Boolean);
+  const sentences=text.match(/[^.!?]+[.!?]+/g)||[];
+  const topWords=getTopWords(words,20);
+  state.topics=topWords.slice(0,6);
+  state.summary=sentences.slice(0,3).join(' ').slice(0,400)+'…';
+  state.objectives=[
+    'Understand the core concepts presented in this document',
+    'Identify key terminology and definitions',
+    'Apply the main ideas to real-world scenarios',
+    'Analyze and evaluate the primary arguments made'
+  ];
+  state.notes=generateLocalNotes(text,sentences,topWords);
+  state.concepts=generateLocalConcepts(text,topWords,sentences);
+  state.flashcards=generateLocalFlashcards(state.concepts,sentences);
+  state.quiz=generateLocalQuiz(state.concepts,sentences);
+  state.revPlan=generateRevPlan(state.topics,state.objectives);
+  state.tutorContext=text.slice(0,3000);
+}
+
+function getTopWords(words,n){
+  const stop=new Set(['the','a','an','and','or','but','in','on','at','to','for','of','with','is','are','was','were','be','been','have','has','had','do','does','did','will','would','could','should','may','might','this','that','these','those','it','its','he','she','they','we','you','i','my','your','his','her','their','our','from','by','as','not','so','if','when','then','than','also','more','most','some','any','all','each','both','few','other','such','into','out','up','about','after','before','between','through','during','including','over','per','since','within','without','only','even','just','can','there','which','who','what','where','how']);
+  const freq={};
+  words.forEach(w=>{const c=w.toLowerCase().replace(/[^a-z]/g,'');if(c.length>4&&!stop.has(c))freq[c]=(freq[c]||0)+1});
+  return Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,n).map(e=>e[0].charAt(0).toUpperCase()+e[0].slice(1));
+}
+
+function generateLocalNotes(text,sentences,topWords){
+  const paras=text.split(/\n\n+/).filter(p=>p.trim().length>80);
+  let html=`<h2>📌 Document Overview</h2><p>${sentences.slice(0,2).join(' ')}</p>`;
+  html+=`<h2>🔑 Key Topics</h2><ul>${topWords.slice(0,8).map(w=>`<li><strong>${w}</strong> — appears as a key concept throughout the document</li>`).join('')}</ul>`;
+  if(paras.length>1){
+    html+=`<h2>📖 Main Content</h2>`;
+    paras.slice(0,6).forEach((p,i)=>{
+      html+=`<h3>Section ${i+1}</h3><p>${p.trim().slice(0,300)}${p.length>300?'…':''}</p>`;
+    });
+  }
+  html+=`<h2>💡 Important Points</h2><ul>${sentences.filter(s=>s.length>60).slice(0,6).map(s=>`<li>${s.trim()}</li>`).join('')}</ul>`;
+  return html;
+}
+
+function generateLocalConcepts(text,topWords,sentences){
+  return topWords.slice(0,10).map(word=>{
+    const rel=sentences.find(s=>s.toLowerCase().includes(word.toLowerCase()))||`${word} is a key concept in this document.`;
+    return{name:word,definition:`A key concept discussed in this document.`,explanation:rel.trim().slice(0,200),example:`See the relevant sections in your document for examples of ${word}.`};
+  });
+}
+
+function generateLocalFlashcards(concepts,sentences){
+  const cards=concepts.map(c=>({q:`What is ${c.name}?`,a:c.definition+' '+c.explanation.slice(0,120)}));
+  sentences.filter(s=>s.length>50&&s.length<200).slice(0,10).forEach((s,i)=>{
+    const words=s.split(' ');
+    const idx=Math.floor(words.length/2);
+    const blank=words.map((w,j)=>j===idx?'_____':w).join(' ');
+    cards.push({q:`Complete: "${blank}"`,a:words[idx]});
+  });
+  return cards.slice(0,25);
+}
+
+function generateLocalQuiz(concepts,sentences){
+  return concepts.slice(0,10).map((c,i)=>{
+    const wrong=concepts.filter((_,j)=>j!==i).slice(0,3).map(x=>x.name);
+    const opts=[c.name,...wrong].sort(()=>Math.random()-.5);
+    return{q:`Which of the following best describes a key concept discussed?`,opts,correct:opts.indexOf(c.name),explanation:`${c.name}: ${c.explanation.slice(0,100)}`};
+  });
+}
+
+function generateRevPlan(topics,objectives){
+  const mkTask=(title,time,priority)=>({title,time,priority,done:false});
+  const one=[
+    {title:'Day 1 — Full Review',tasks:[
+      mkTask('Read through your notes','30 min','high'),
+      mkTask('Review key concepts: '+topics.slice(0,3).join(', '),'20 min','high'),
+      mkTask('Complete 10 flashcards','15 min','medium'),
+      mkTask('Take the practice quiz','20 min','high')
+    ]}
+  ];
+  const three=[
+    {title:'Day 1 — Foundation',tasks:[mkTask('Read overview & summary','25 min','high'),mkTask('Study key concepts','30 min','high'),mkTask('Flashcards round 1','20 min','medium')]},
+    {title:'Day 2 — Deep dive',tasks:[mkTask('Study topics: '+topics.slice(0,3).join(', '),'35 min','high'),mkTask('Take practice quiz','20 min','high'),mkTask('Review wrong answers','15 min','medium')]},
+    {title:'Day 3 — Review',tasks:[mkTask('Revise difficult concepts','25 min','high'),mkTask('Full flashcard deck','20 min','medium'),mkTask('Final quiz attempt','25 min','high')]}
+  ];
+  const seven=Array.from({length:7},(_,i)=>({
+    title:`Day ${i+1}`,
+    tasks:[
+      mkTask(i<3?'Study new concepts':'Review previous material','30 min',i<3?'high':'medium'),
+      mkTask('Flashcard practice','15 min','medium'),
+      i>3?mkTask('Quiz practice','20 min','high'):null
+    ].filter(Boolean)
+  }));
+  return{1:one,3:three,7:seven};
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────
+function buildDashboard(){
+  buildOverview();
+  buildNotes();
+  buildConcepts();
+  buildFlashcards();
+  buildQuiz();
+  buildRevision();
+  buildTutor();
+  buildProgress();
+}
+
+function buildOverview(){
+  const wc=state.wordCount||state.docText.split(/\s+/).length;
+  const pages=state.pageCount||Math.max(1,Math.ceil(wc/250));
+  const readMin=Math.ceil(wc/200);
+  const studyMin=Math.ceil(readMin*2.5);
+  const diff=wc>5000?'Advanced':wc>2000?'Intermediate':'Beginner';
+  document.getElementById('overview-sub').textContent=`${state.docName} — ready to study`;
+  document.getElementById('sb-docname').textContent=state.docName;
+  document.getElementById('sb-docmeta').textContent=`${pages} pages · ${wc.toLocaleString()} words`;
+  document.getElementById('overview-stats').innerHTML=`
+    <div class="stat-card"><div class="label">Pages</div><div class="value purple">${pages}</div></div>
+    <div class="stat-card"><div class="label">Words</div><div class="value teal">${wc.toLocaleString()}</div></div>
+    <div class="stat-card"><div class="label">Read time</div><div class="value amber">${readMin}m</div></div>
+    <div class="stat-card"><div class="label">Study time</div><div class="value">${studyMin}m</div></div>
+    <div class="stat-card"><div class="label">Difficulty</div><div class="value" style="font-size:14px;padding-top:4px">${diff}</div></div>
+  `;
+  document.getElementById('overview-summary').textContent=state.summary;
+  document.getElementById('overview-objectives').innerHTML=state.objectives.map(o=>`<li>${o}</li>`).join('');
+  document.getElementById('overview-topics').innerHTML=state.topics.map((t,i)=>{
+    const cls=['pill-purple','pill-teal','pill-amber','pill-coral'][i%4];
+    return`<span class="pill ${cls}">${t}</span>`;
+  }).join('');
+}
+
+function buildNotes(){
+  document.getElementById('notes-content').innerHTML=state.notes||'<p style="color:var(--text2)">No notes generated.</p>';
+}
+
+function buildConcepts(){
+  document.getElementById('concepts-grid').innerHTML=state.concepts.map(c=>`
+    <div class="concept-card">
+      <div class="concept-name">${c.name}</div>
+      <div class="concept-def">${c.definition}</div>
+      <div class="concept-example">${c.example}</div>
+    </div>`).join('');
+}
+
+function buildFlashcards(){
+  state.fcOrder=state.flashcards.map((_,i)=>i);
+  state.fcIndex=0;state.fcFlipped=false;state.fcKnown=new Set();state.fcHard=new Set();
+  document.getElementById('fc-count-badge').textContent=state.flashcards.length;
+  renderFC();
+}
+
+function renderFC(){
+  const fc=state.flashcards;
+  if(!fc.length)return;
+  const idx=state.fcOrder[state.fcIndex]||0;
+  const card=fc[idx];
+  document.getElementById('fc-front-text').textContent=card.q;
+  document.getElementById('fc-back-text').textContent=card.a;
+  document.getElementById('fc-counter').textContent=`${state.fcIndex+1} / ${fc.length}`;
+  document.getElementById('fc-known').textContent=state.fcKnown.size;
+  document.getElementById('fc-hard').textContent=state.fcHard.size;
+  const el=document.getElementById('fc-card');
+  el.classList.toggle('flipped',state.fcFlipped);
+}
+
+function flipCard(){state.fcFlipped=!state.fcFlipped;document.getElementById('fc-card').classList.toggle('flipped',state.fcFlipped)}
+function nextCard(){state.fcFlipped=false;state.fcIndex=(state.fcIndex+1)%state.flashcards.length;renderFC();state.progress.flashcards++;saveProgress()}
+function prevCard(){state.fcFlipped=false;state.fcIndex=(state.fcIndex-1+state.flashcards.length)%state.flashcards.length;renderFC()}
+function shuffleCards(){state.fcOrder=state.fcOrder.sort(()=>Math.random()-.5);state.fcIndex=0;state.fcFlipped=false;renderFC()}
+function resetCards(){state.fcKnown=new Set();state.fcHard=new Set();state.fcIndex=0;state.fcFlipped=false;renderFC()}
+function markCard(type){const idx=state.fcOrder[state.fcIndex];if(type==='known'){state.fcKnown.add(idx);state.fcHard.delete(idx)}else{state.fcHard.add(idx);state.fcKnown.delete(idx)}renderFC();nextCard()}
+
+function buildQuiz(){state.quizActive=[...state.quiz]}
+function setDifficulty(d,btn){
+  state.quizDifficulty=d;
+  document.querySelectorAll('.diff-chip').forEach(b=>{b.className='diff-chip'});
+  btn.className=`diff-chip active-${d}`;
+}
+function startQuiz(){
+  if(!state.quiz.length)return;
+  state.quizIndex=0;state.quizScore=0;state.quizAnswered=false;
+  document.getElementById('quiz-setup').style.display='none';
+  document.getElementById('quiz-play').style.display='block';
+  document.getElementById('quiz-results').style.display='none';
+  renderQuizQ();
+}
+function renderQuizQ(){
+  const q=state.quiz[state.quizIndex];
+  if(!q)return showQuizResults();
+  document.getElementById('quiz-qnum').textContent=`Question ${state.quizIndex+1} of ${state.quiz.length}`;
+  document.getElementById('quiz-prog-bar').style.width=Math.round(((state.quizIndex)/state.quiz.length)*100)+'%';
+  document.getElementById('quiz-score-pill').textContent=`Score: ${state.quizScore}`;
+  document.getElementById('quiz-question-text').textContent=q.q;
+  const letters=['A','B','C','D'];
+  document.getElementById('quiz-options').innerHTML=q.opts.map((o,i)=>`
+    <button class="quiz-opt" onclick="answerQuiz(${i})">
+      <span class="opt-letter">${letters[i]}</span>${o}
+    </button>`).join('');
+  document.getElementById('quiz-feedback').className='quiz-feedback hidden';
+  document.getElementById('quiz-next-btn').style.display='none';
+  state.quizAnswered=false;
+}
+function answerQuiz(idx){
+  if(state.quizAnswered)return;
+  state.quizAnswered=true;
+  const q=state.quiz[state.quizIndex];
+  const opts=document.querySelectorAll('.quiz-opt');
+  opts.forEach((o,i)=>{
+    o.disabled=true;
+    if(i===q.correct)o.classList.add('correct');
+    else if(i===idx&&idx!==q.correct)o.classList.add('wrong');
+  });
+  const correct=idx===q.correct;
+  if(correct)state.quizScore++;
+  const fb=document.getElementById('quiz-feedback');
+  fb.className='quiz-feedback '+(correct?'correct':'wrong');
+  fb.innerHTML=(correct?'✓ Correct! ':'✗ Incorrect. ')+(q.explanation||'');
+  document.getElementById('quiz-next-btn').style.display='flex';
+}
+function nextQuizQ(){state.quizIndex++;renderQuizQ()}
+function showQuizResults(){
+  document.getElementById('quiz-play').style.display='none';
+  document.getElementById('quiz-results').style.display='block';
+  const pct=Math.round((state.quizScore/state.quiz.length)*100);
+  document.getElementById('res-pct').textContent=pct+'%';
+  document.getElementById('res-correct').textContent=state.quizScore;
+  document.getElementById('res-wrong').textContent=state.quiz.length-state.quizScore;
+  state.progress.quizzes++;
+  state.progress.avgScore=Math.round((state.progress.avgScore+pct)/2);
+  saveProgress();
+}
+function restartQuiz(){
+  document.getElementById('quiz-results').style.display='none';
+  document.getElementById('quiz-setup').style.display='block';
+}
+
+function buildRevision(){showRevPlan(1,document.querySelector('.rev-tab'))}
+function showRevPlan(days,btn){
+  state.revPlanDays=days;
+  document.querySelectorAll('.rev-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const plan=state.revPlan[days]||[];
+  document.getElementById('revision-content').innerHTML=plan.map((day,di)=>`
+    <div class="rev-day">
+      <div class="rev-day-header">
+        <div class="rev-day-num">${di+1}</div>
+        <div class="rev-day-title">${day.title}</div>
+      </div>
+      <div class="rev-tasks">${day.tasks.map((task,ti)=>{
+        const key=`${days}-${di}-${ti}`;
+        const done=state.revChecked[key];
+        return`<div class="rev-task">
+          <div class="rev-task-check ${done?'done':''}" onclick="toggleRevTask('${key}',this)">
+            ${done?'✓':''}
+          </div>
+          <div class="rev-task-body">
+            <div class="rev-task-title" style="${done?'text-decoration:line-through;color:var(--text3)':''}"> ${task.title}</div>
+            <div class="rev-task-meta">⏱ ${task.time} · <span class="priority-${task.priority}">${task.priority.toUpperCase()}</span></div>
+          </div>
+        </div>`;
+      }).join('')}</div>
+    </div>`).join('');
+}
+function toggleRevTask(key,el){
+  state.revChecked[key]=!state.revChecked[key];
+  el.classList.toggle('done',state.revChecked[key]);
+  el.textContent=state.revChecked[key]?'✓':'';
+  el.nextElementSibling.querySelector('.rev-task-title').style.cssText=state.revChecked[key]?'text-decoration:line-through;color:var(--text3)':'';
+}
+
+function buildTutor(){
+  state.tutorContext=state.docText.slice(0,3000);
+  state.tutorHistory=[];
+  document.getElementById('tutor-msgs').innerHTML='<div class="msg ai">👋 Hi! I\'ve read your document. Ask me anything — I can explain concepts, summarize sections, give examples, or quiz you.</div>';
+  const sugs=['Summarize the main idea','Explain the key concepts simply','What are the most important points?','Give me 3 exam questions','Explain like I\'m 10'];
+  document.getElementById('tutor-suggestions').innerHTML=sugs.map(s=>`<button class="sug-btn" onclick="useSuggestion('${s}')">${s}</button>`).join('');
+}
+function setTutorMode(m,btn){state.tutorMode=m;document.querySelectorAll('.mode-chip').forEach(b=>b.classList.remove('active'));btn.classList.add('active')}
+function useSuggestion(s){document.getElementById('tutor-input').value=s;sendTutorMsg()}
+function tutorKeydown(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendTutorMsg()}}
+async function sendTutorMsg(){
+  const inp=document.getElementById('tutor-input');
+  const q=inp.value.trim();
+  if(!q)return;
+  inp.value='';
+  const msgs=document.getElementById('tutor-msgs');
+  msgs.innerHTML+=`<div class="msg user">${escHtml(q)}</div>`;
+  const loadId='load'+Date.now();
+  msgs.innerHTML+=`<div class="msg ai loading" id="${loadId}"><span class="ai-dot">•</span><span class="ai-dot">•</span><span class="ai-dot">•</span></div>`;
+  msgs.scrollTop=msgs.scrollHeight;
+
+  const modeInstr={simple:'Explain in very simple language, like for a student. Use analogies.',normal:'Give a clear, well-structured explanation.',advanced:'Give a thorough, detailed technical explanation with nuance.'};
+  const systemPrompt=`You are a helpful AI study tutor. The user has uploaded a document. Answer based on this context:\n\n${state.tutorContext}\n\n${modeInstr[state.tutorMode]}`;
+
+  let answer='';
+  const key=getApiKey();
+  if(key){
+    try{
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+        body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,system:systemPrompt,messages:[...state.tutorHistory,{role:'user',content:q}]})
+      });
+      const data=await res.json();
+      answer=data.content?.[0]?.text||'Sorry, I couldn\'t generate a response.';
+      state.tutorHistory.push({role:'user',content:q},{role:'assistant',content:answer});
+      if(state.tutorHistory.length>10)state.tutorHistory=state.tutorHistory.slice(-8);
+    }catch(e){answer=generateLocalTutorResponse(q);}
+  } else {
+    await sleep(700);
+    answer=generateLocalTutorResponse(q);
+  }
+
+  document.getElementById(loadId).outerHTML=`<div class="msg ai">${escHtml(answer)}</div>`;
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function generateLocalTutorResponse(q){
+  const ql=q.toLowerCase();
+  if(ql.includes('summary')||ql.includes('summarize')||ql.includes('main idea'))
+    return state.summary||'This document covers several important topics. Review the Overview tab for a detailed summary.';
+  if(ql.includes('concept')||ql.includes('key'))
+    return'Key concepts in this document include: '+state.topics.join(', ')+'. Check the Key Concepts tab for detailed explanations.';
+  if(ql.includes('exam')||ql.includes('question'))
+    return'Here are some potential exam questions:\n1. '+state.quiz.slice(0,3).map(q=>q.q).join('\n2. ');
+  if(ql.includes('simple')||ql.includes('explain'))
+    return`Think of it this way: ${state.summary||'This document explores a set of ideas.'} The main thing to understand is: ${state.topics[0]||'the core subject'} and how it relates to ${state.topics[1]||'other concepts'}.`;
+  return`Based on your document, here's what I can tell you about "${q.slice(0,50)}": ${state.sentences?.[0]||state.summary||'Please review the Notes tab for detailed information about this topic.'}`;
+}
+
+function buildProgress(){
+  const p=state.progress;
+  document.getElementById('prog-cards').innerHTML=`
+    <div class="prog-card"><div class="icon">📄</div><div class="val">${p.docs}</div><div class="lbl">Documents studied</div></div>
+    <div class="prog-card"><div class="icon">🃏</div><div class="val">${p.flashcards}</div><div class="lbl">Flashcards reviewed</div></div>
+    <div class="prog-card"><div class="icon">❓</div><div class="val">${p.quizzes}</div><div class="lbl">Quizzes completed</div></div>
+    <div class="prog-card"><div class="icon streak-fire">🔥</div><div class="val">${p.streak}</div><div class="lbl">Day streak</div></div>
+    <div class="prog-card"><div class="icon">🎯</div><div class="val">${p.avgScore}%</div><div class="lbl">Avg quiz score</div></div>
+  `;
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const vals=[20,45,30,60,80,55,p.flashcards+10];
+  const max=Math.max(...vals);
+  document.getElementById('activity-chart').innerHTML=days.map((d,i)=>`
+    <div class="bar-wrap">
+      <div class="bar" style="height:${Math.round((vals[i]/max)*72)}px;background:${i===6?'var(--teal)':'var(--purple)'}"></div>
+      <div class="bar-lbl">${d}</div>
+    </div>`).join('');
+  document.getElementById('achievements').innerHTML=[
+    p.docs>=1?'🎓 First Upload':'',
+    p.flashcards>=5?'🃏 Flashcard Fan':'',
+    p.quizzes>=1?'✅ Quiz Taker':'',
+    p.streak>=3?'🔥 On Fire':'',
+    p.avgScore>=80?'⭐ High Scorer':'',
+  ].filter(Boolean).map(a=>`<span class="pill pill-purple" style="font-size:13px;padding:6px 14px">${a}</span>`).join('');
+  if(!document.getElementById('achievements').innerHTML)
+    document.getElementById('achievements').innerHTML='<span style="font-size:13px;color:var(--text3)">Complete activities to earn achievements!</span>';
+}
+
+function saveProgress(){
+  try{localStorage.setItem('studymind_progress',JSON.stringify(state.progress))}catch(e){}
+}
+function loadProgress(){
+  try{const p=localStorage.getItem('studymind_progress');if(p)state.progress=JSON.parse(p)}catch(e){}
+}
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+function switchTab(btn,tab){
+  document.querySelectorAll('.sidebar-item').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='progress')buildProgress();
+}
+
+// ── Notes search ───────────────────────────────────────────────────────────
+function searchNotes(q){
+  const el=document.getElementById('notes-content');
+  if(!q){el.innerHTML=state.notes;return}
+  const html=state.notes.replace(new RegExp(`(${q})`, 'gi'),'<mark style="background:rgba(124,106,247,.3);border-radius:3px;padding:0 2px">$1</mark>');
+  el.innerHTML=html;
+}
+function copyNotes(){navigator.clipboard?.writeText(document.getElementById('notes-content').innerText||'').then(()=>flash('Copied!'))}
+function printNotes(){window.print()}
+function flash(msg){const el=document.createElement('div');el.textContent=msg;el.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--purple);color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;z-index:9999';document.body.appendChild(el);setTimeout(()=>el.remove(),1800)}
+
+// ── Demo data ──────────────────────────────────────────────────────────────
+function loadDemo(){
+  state.docName='Photosynthesis — Biology Notes.pdf';
+  state.wordCount=2400;
+  state.pageCount=12;
+  state.docText='Photosynthesis is the process by which green plants convert sunlight into food. Chlorophyll in the chloroplasts absorbs light energy. The light-dependent reactions occur in the thylakoid membranes. The Calvin cycle occurs in the stroma of the chloroplast. Glucose is produced as a result of carbon dioxide fixation. Oxygen is released as a by-product. The overall equation is 6CO2 + 6H2O + light → C6H12O6 + 6O2. Factors affecting photosynthesis include light intensity, carbon dioxide concentration, and temperature. Limiting factors reduce the rate of photosynthesis.';
+  state.summary='Photosynthesis is the fundamental biological process by which plants, algae, and some bacteria convert light energy into chemical energy stored as glucose. This process is essential for life on Earth as it forms the base of virtually all food chains and produces atmospheric oxygen.';
+  state.objectives=['Explain the two main stages of photosynthesis','Describe the role of chlorophyll and chloroplasts','Analyze the factors that affect the rate of photosynthesis','Write and interpret the overall equation for photosynthesis'];
+  state.topics=['Photosynthesis','Chlorophyll','Chloroplasts','Calvin Cycle','Thylakoid','Glucose','Light reactions'];
+  state.notes=`<h2>🌿 Photosynthesis</h2><p>The process by which plants manufacture food using light energy, carbon dioxide, and water.</p><h3>Overview equation</h3><p><strong>6CO₂ + 6H₂O + light energy → C₆H₁₂O₆ + 6O₂</strong></p><h2>⚡ Stage 1 — Light-Dependent Reactions</h2><ul><li>Occur in the <strong>thylakoid membranes</strong> of the chloroplast</li><li>Chlorophyll absorbs red and blue light</li><li>Water molecules are split (photolysis) → releases O₂</li><li>ATP and NADPH are produced for use in Stage 2</li></ul><h2>🔄 Stage 2 — The Calvin Cycle</h2><ul><li>Occurs in the <strong>stroma</strong> of the chloroplast</li><li>CO₂ is fixed using ATP and NADPH</li><li>Glucose (C₆H₁₂O₆) is synthesized</li><li>Does not directly require light</li></ul><h2>📊 Limiting Factors</h2><ul><li><strong>Light intensity</strong> — more light = faster rate (up to a point)</li><li><strong>CO₂ concentration</strong> — more CO₂ = faster rate</li><li><strong>Temperature</strong> — enzyme activity affects rate; optimal ~25–30°C</li></ul>`;
+  state.concepts=[
+    {name:'Chlorophyll',definition:'The green pigment in plant cells that absorbs light energy.',explanation:'Located in the thylakoid membranes, chlorophyll absorbs mainly red and blue wavelengths of light.',example:'Chlorophyll-a and chlorophyll-b are the two main types in plants.'},
+    {name:'Chloroplast',definition:'The organelle where photosynthesis takes place.',explanation:'Has a double membrane; contains thylakoids (stacked into grana) and the fluid stroma.',example:'A single leaf cell may contain 40–50 chloroplasts.'},
+    {name:'Thylakoid',definition:'Disc-like membrane sacs inside the chloroplast where light reactions occur.',explanation:'Stacked into structures called grana; the light-absorbing pigments are embedded in these membranes.',example:'The thylakoid membrane contains photosystems I and II.'},
+    {name:'Calvin Cycle',definition:'The set of reactions that fix CO₂ into glucose using ATP and NADPH.',explanation:'Takes place in the stroma; named after Melvin Calvin who won the Nobel Prize for discovering it.',example:'Three CO₂ molecules are needed to produce one molecule of G3P.'},
+    {name:'Limiting Factor',definition:'Any factor that slows down the rate of photosynthesis when it is in short supply.',explanation:'At any given moment, only one factor is limiting. Increasing other factors beyond the limit has no effect.',example:'On a cloudy day, light intensity is the limiting factor.'},
+    {name:'ATP',definition:'Adenosine triphosphate — the energy currency of cells.',explanation:'Produced in the light reactions and consumed in the Calvin cycle to drive biosynthesis.',example:'One molecule of glucose yields ~38 ATP molecules through respiration.'},
+  ];
+  state.flashcards=[
+    {q:'What is the overall equation for photosynthesis?',a:'6CO₂ + 6H₂O + light energy → C₆H₁₂O₆ + 6O₂'},
+    {q:'Where do the light-dependent reactions take place?',a:'In the thylakoid membranes of the chloroplast'},
+    {q:'Where does the Calvin cycle occur?',a:'In the stroma of the chloroplast'},
+    {q:'What pigment absorbs light in photosynthesis?',a:'Chlorophyll (mainly chlorophyll-a and chlorophyll-b)'},
+    {q:'What is photolysis?',a:'The splitting of water molecules using light energy, releasing oxygen as a by-product'},
+    {q:'Name three limiting factors for photosynthesis.',a:'Light intensity, CO₂ concentration, and temperature'},
+    {q:'What are the products of the light-dependent reactions?',a:'ATP, NADPH, and oxygen'},
+    {q:'What is the role of ATP in photosynthesis?',a:'It provides energy for the Calvin cycle to synthesize glucose'},
+    {q:'At what temperature is photosynthesis typically most efficient?',a:'Around 25–30°C for most plants'},
+    {q:'What happens to the rate of photosynthesis above the optimum temperature?',a:'It decreases because enzymes begin to denature'},
+    {q:'What does NADPH stand for?',a:'Nicotinamide adenine dinucleotide phosphate — an electron carrier in photosynthesis'},
+    {q:'How many CO₂ molecules are needed to make one glucose?',a:'Six CO₂ molecules'},
+    {q:'Why are leaves green?',a:'Chlorophyll reflects green light and absorbs red and blue wavelengths'},
+    {q:'What is a granum?',a:'A stack of thylakoids inside the chloroplast'},
+    {q:'Who discovered the Calvin cycle?',a:'Melvin Calvin — he won the Nobel Prize in 1961'},
+  ];
+  state.quiz=[
+    {q:'Where do the light-dependent reactions of photosynthesis take place?',opts:['Stroma','Thylakoid membranes','Mitochondria','Nucleus'],correct:1,explanation:'Light-dependent reactions occur in the thylakoid membranes, where chlorophyll is embedded.'},
+    {q:'Which molecule is NOT a product of the light-dependent reactions?',opts:['ATP','NADPH','Oxygen','Glucose'],correct:3,explanation:'Glucose is produced in the Calvin cycle, not the light-dependent reactions.'},
+    {q:'What is the main pigment responsible for photosynthesis?',opts:['Carotenoid','Anthocyanin','Chlorophyll','Xanthophyll'],correct:2,explanation:'Chlorophyll absorbs light energy and is the primary pigment in photosynthesis.'},
+    {q:'Which factor does NOT affect the rate of photosynthesis?',opts:['Light intensity','CO₂ concentration','Temperature','Soil pH directly'],correct:3,explanation:'Soil pH affects nutrient uptake indirectly, but is not a direct limiting factor like light, CO₂, and temperature.'},
+    {q:'The Calvin cycle is also known as:',opts:['Light reactions','Dark reactions / carbon fixation','Electron transport chain','Oxidative phosphorylation'],correct:1,explanation:'The Calvin cycle (also called dark reactions or carbon fixation) uses ATP and NADPH to fix CO₂ into G3P.'},
+    {q:'What is released as a by-product when water is split during photolysis?',opts:['Carbon dioxide','Nitrogen','Oxygen','Hydrogen'],correct:2,explanation:'Photolysis splits water into hydrogen ions, electrons, and oxygen. The oxygen is released as a by-product.'},
+    {q:'How many CO₂ molecules are needed to make one glucose molecule?',opts:['3','4','6','12'],correct:2,explanation:'Six CO₂ molecules are combined (via the Calvin cycle) to synthesize one molecule of glucose.'},
+    {q:'What happens to enzyme activity in photosynthesis above ~40°C?',opts:['It increases','It stays the same','Enzymes denature and rate drops','CO₂ becomes the limiting factor'],correct:2,explanation:'High temperatures cause enzymes to denature, reducing or stopping the rate of photosynthesis.'},
+    {q:'In which part of the chloroplast does the Calvin cycle take place?',opts:['Thylakoid','Grana','Stroma','Outer membrane'],correct:2,explanation:'The stroma is the fluid-filled space surrounding the thylakoids where the Calvin cycle reactions occur.'},
+    {q:'What color of light does chlorophyll-a mainly absorb?',opts:['Green','Yellow','Red and blue','White'],correct:2,explanation:'Chlorophyll-a primarily absorbs red and blue light, reflecting green — which is why leaves appear green.'},
+  ];
+  state.revPlan=generateRevPlan(state.topics,state.objectives);
+  state.tutorContext=state.docText;
+  showProc(state.docName);
+  setTimeout(()=>{
+    document.getElementById('proc-screen').style.display='none';
+    document.getElementById('dash').style.display='flex';
+    document.getElementById('btn-new-doc').style.display='block';
+    document.getElementById('nav-doc-name').textContent=state.docName;
+    document.getElementById('nav-doc-name').classList.remove('hidden');
+    state.progress.docs++;
+    buildDashboard();
+    saveProgress();
+  },2800);
+}
+
+// ── Utilities ──────────────────────────────────────────────────────────────
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+loadProgress();
+</script>
+</body>
+</html>
